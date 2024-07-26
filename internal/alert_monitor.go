@@ -21,23 +21,34 @@ func NewAlertMonitor() *AlertMonitor {
 }
 
 func (am *AlertMonitor) RegisterAlertConfig(config types.AlertConfig) {
+	am.mu.Lock()
+    defer am.mu.Unlock()
 	am.alertConfigs = append(am.alertConfigs, config)
 }
 
-func (am *AlertMonitor) RecordEvent(event types.Event) {
+// RecordEvent processes an event and returns an alert message if triggered
+func (am *AlertMonitor) RecordEvent(event types.Event) (string, bool) {
 	am.mu.Lock()
-	defer am.mu.Unlock()
+    defer am.mu.Unlock()
 
-	key := fmt.Sprintf("%s-%s", event.Client, event.EventType)
-	am.eventLogs[key] = append(am.eventLogs[key], event.Timestamp)
+    key := fmt.Sprintf("%s-%s", event.Client, event.EventType)
+    am.eventLogs[key] = append(am.eventLogs[key], event.Timestamp)
 
-	for _, config := range am.alertConfigs {
-		if config.Client == event.Client && config.EventType == event.EventType {
-			if am.checkThreshold(config, key) {
-				am.dispatchAlert(config)
-			}
-		}
-	}
+    var alertMessage string
+    alertTriggered := false
+
+    for _, config := range am.alertConfigs {
+        if config.Client == event.Client && config.EventType == event.EventType {
+            if am.checkThreshold(config, key) {
+                alertMessage = fmt.Sprintf("Alert triggered for %s with event type %s", event.Client, event.EventType)
+                alertTriggered = true
+                am.dispatchAlert(config)
+                break // Assuming you only need to dispatch the alert once per event
+            }
+        }
+    }
+
+    return alertMessage, alertTriggered
 }
 
 func (am *AlertMonitor) checkThreshold(config types.AlertConfig, key string) bool {
@@ -58,6 +69,7 @@ func (am *AlertMonitor) checkThreshold(config types.AlertConfig, key string) boo
 	case types.SlidingWindowConfig:
 		windowStart := now.Add(-time.Duration(cfg.WindowSizeInSecs) * time.Second)
 		count := 0
+
 		for _, eventTime := range events {
 			if eventTime.After(windowStart) {
 				count++

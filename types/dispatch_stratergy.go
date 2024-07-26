@@ -1,5 +1,3 @@
-// types/dispatch_strategy.go
-
 package types
 
 import "fmt"
@@ -11,7 +9,8 @@ type DispatchStrategy interface {
 
 // ConsoleDispatch implements DispatchStrategy for console output
 type ConsoleDispatch struct {
-    Message string
+	Type    string `json:"type"`
+    Message string `json:"message"`
 }
 
 func (c ConsoleDispatch) Dispatch(alertMessage string) {
@@ -20,7 +19,8 @@ func (c ConsoleDispatch) Dispatch(alertMessage string) {
 
 // EmailDispatch implements DispatchStrategy for email output
 type EmailDispatch struct {
-    Subject string
+	Type    string `json:"type"`
+    Subject string `json:"subject"`
 }
 
 func (e EmailDispatch) Dispatch(alertMessage string) {

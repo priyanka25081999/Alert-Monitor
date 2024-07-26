@@ -1,67 +1,87 @@
 package main
 
 import (
-	"time"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
 
 	"github.com/personal/Alert-Monitor/internal"
 	"github.com/personal/Alert-Monitor/types"
 )
 
+// Define global alert monitor
+var alertMonitor *internal.AlertMonitor
+
+func init() {
+    alertMonitor = internal.NewAlertMonitor()
+}
+
+// addAlertConfigHandler handles POST requests to add alert configurations
+func addAlertConfigHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var config types.AlertConfig
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&config)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	fmt.Printf("Received config: %+v\n", config)
+
+	alertMonitor.RegisterAlertConfig(config)
+
+	response := map[string]string{
+		"message":   "Alert configuration added successfully",
+		"client":    config.Client,
+		"eventType": config.EventType,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
+// Handler to simulate an event
+func recordEventHandler(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodPost {
+        http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+        return
+    }
+
+    var event types.Event
+    decoder := json.NewDecoder(r.Body)
+    if err := decoder.Decode(&event); err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    // Record the event and check for alerts
+    alertResult, alertTriggered := alertMonitor.RecordEvent(event)
+
+	fmt.Println("AlertResult: ", alertResult, " AlertTriggered: ", alertTriggered)
+
+    response := map[string]interface{}{
+        "message": "Event recorded successfully",
+        "client":  event.Client,
+        "eventType": event.EventType,
+        "alert": alertResult,
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+    json.NewEncoder(w).Encode(response)
+}
+
 func main() {
-	alertMonitor := internal.NewAlertMonitor()
+    http.HandleFunc("/add-config", addAlertConfigHandler)
+    http.HandleFunc("/record-event", recordEventHandler)
 
-	// Define alert configurations
-	alertConfigList := []types.AlertConfig{
-		{
-            Client:    "X",
-            EventType: "PAYMENT_EXCEPTION",
-            Config: types.TumblingWindowConfig{
-                Count:            10,
-                WindowSizeInSecs: 10,
-            },
-            DispatchStrategies: []types.DispatchStrategy{
-                types.ConsoleDispatch{Message: "issue in payment"},
-                types.EmailDispatch{Subject: "payment exception threshold breached"},
-            },
-        },
-		{
-			Client:     "X",
-			EventType:  "USERSERVICE_EXCEPTION",
-			Config:      types.SlidingWindowConfig{Count: 10, WindowSizeInSecs: 10},
-			DispatchStrategies: []types.DispatchStrategy{
-				types.ConsoleDispatch{Message: "issue in user service"},
-			},
-		},
-	}
-
-	// Register configurations
-	for _, config := range alertConfigList {
-		alertMonitor.RegisterAlertConfig(config)
-	}
-
-	// Simulate events
-	go func() {
-		for i := 0; i < 20; i++ {
-			alertMonitor.RecordEvent(types.Event{
-				Client:    "X",
-				EventType: "PAYMENT_EXCEPTION",
-				Timestamp: time.Now(),
-			})
-			time.Sleep(1 * time.Second)
-		}
-	}()
-
-	go func() {
-		for i := 0; i < 20; i++ {
-			alertMonitor.RecordEvent(types.Event{
-				Client:    "X",
-				EventType: "USERSERVICE_EXCEPTION",
-				Timestamp: time.Now(),
-			})
-			time.Sleep(2 * time.Second)
-		}
-	}()
-
-	// Keep the program running to allow for event processing
-	select {}
+    log.Println("Server starting on port 8080...")
+    log.Fatal(http.ListenAndServe(":8080", nil))
 }
