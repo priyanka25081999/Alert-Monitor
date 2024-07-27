@@ -43,7 +43,7 @@ func (am *AlertMonitor) RecordEvent(event types.Event) (string, bool) {
                 alertMessage = fmt.Sprintf("Alert triggered for %s with event type %s", event.Client, event.EventType)
                 alertTriggered = true
                 am.dispatchAlert(config)
-                break // Assuming you only need to dispatch the alert once per event
+                break
             }
         }
     }

@@ -38,6 +38,5 @@ func TestAlertMonitor(t *testing.T) {
 		Timestamp: time.Now(),
 	})
 
-	// Allow some time for the alert to be dispatched
 	time.Sleep(1 * time.Second)
 }
