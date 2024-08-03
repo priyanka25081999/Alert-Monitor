@@ -81,6 +81,7 @@ func (cfg *AlertConfig) UnmarshalJSON(data []byte) error {
 
 // WindowConfig interface
 type WindowConfig interface {
+	// marker method - marker interface pattern
 	isWindowConfig()
 }
 
@@ -91,6 +92,9 @@ type TumblingWindowConfig struct {
 	WindowSizeInSecs int    `json:"windowSizeInSecs"`
 }
 
+// The func (TumblingWindowConfig) isWindowConfig() {} method doesn't need to perform any operations. Its sole purpose is to indicate
+// that TumblingWindowConfig satisfies the WindowConfig interface, allowing it to be treated as a WindowConfig type. This pattern is particularly
+// useful for categorizing types without enforcing specific behaviors, allowing for flexible and type-safe handling of different configurations.
 func (TumblingWindowConfig) isWindowConfig() {}
 
 // SlidingWindowConfig defines a sliding window configuration

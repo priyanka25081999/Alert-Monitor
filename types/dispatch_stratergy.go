@@ -4,25 +4,26 @@ import "fmt"
 
 // DispatchStrategy interface
 type DispatchStrategy interface {
-    Dispatch(alertMessage string)
+	Dispatch(alertMessage string)
 }
 
 // ConsoleDispatch implements DispatchStrategy for console output
 type ConsoleDispatch struct {
 	Type    string `json:"type"`
-    Message string `json:"message"`
+	Message string `json:"message"`
 }
 
+// The method has a receiver c, which is an instance of ConsoleDispatch.
 func (c ConsoleDispatch) Dispatch(alertMessage string) {
-    fmt.Printf("[WARN] Alert: `%s`\n", c.Message)
+	fmt.Printf("[WARN] Alert: `%s`\n", c.Message)
 }
 
 // EmailDispatch implements DispatchStrategy for email output
 type EmailDispatch struct {
 	Type    string `json:"type"`
-    Subject string `json:"subject"`
+	Subject string `json:"subject"`
 }
 
 func (e EmailDispatch) Dispatch(alertMessage string) {
-    fmt.Printf("[INFO] AlertingService: Dispatching an Email with subject: `%s`\n", e.Subject)
+	fmt.Printf("[INFO] AlertingService: Dispatching an Email with subject: `%s`\n", e.Subject)
 }
